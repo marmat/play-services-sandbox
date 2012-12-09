@@ -1,114 +1,145 @@
 package de.martinmatysiak.android.playservices;
 
-import android.app.ActionBar;
-import android.app.FragmentTransaction;
-import android.content.Context;
+import com.google.android.gms.common.ConnectionResult;
+import com.google.android.gms.common.Scopes;
+import com.google.android.gms.common.GooglePlayServicesClient.ConnectionCallbacks;
+import com.google.android.gms.common.GooglePlayServicesClient.OnConnectionFailedListener;
+import com.google.android.gms.plus.PlusClient;
+
+import android.content.Intent;
+import android.content.IntentSender.SendIntentException;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.FragmentActivity;
 import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
-import android.support.v4.app.NavUtils;
 import android.support.v4.view.ViewPager;
-import android.view.Gravity;
-import android.view.LayoutInflater;
+import android.util.Log;
 import android.view.Menu;
-import android.view.MenuItem;
-import android.view.View;
-import android.view.ViewGroup;
-import android.widget.TextView;
+import de.martinmatysiak.android.playservices.fragments.IntroFragment;
+import de.martinmatysiak.android.playservices.fragments.MapsFragment;
+import de.martinmatysiak.android.playservices.fragments.PlusFragment;
 
-public class SandboxActivity extends FragmentActivity {
+public class SandboxActivity extends FragmentActivity implements
+		ConnectionCallbacks, OnConnectionFailedListener, PlusClientProvider {
 
-    /**
-     * The {@link android.support.v4.view.PagerAdapter} that will provide fragments for each of the
-     * sections. We use a {@link android.support.v4.app.FragmentPagerAdapter} derivative, which will
-     * keep every loaded fragment in memory. If this becomes too memory intensive, it may be best
-     * to switch to a {@link android.support.v4.app.FragmentStatePagerAdapter}.
-     */
-    SectionsPagerAdapter mSectionsPagerAdapter;
+	/**
+	 * The {@link android.support.v4.view.PagerAdapter} that will provide
+	 * fragments for each of the sections. We use a
+	 * {@link android.support.v4.app.FragmentPagerAdapter} derivative, which
+	 * will keep every loaded fragment in memory. If this becomes too memory
+	 * intensive, it may be best to switch to a
+	 * {@link android.support.v4.app.FragmentStatePagerAdapter}.
+	 */
+	SectionsPagerAdapter sectionsPagerAdapter;
 
-    /**
-     * The {@link ViewPager} that will host the section contents.
-     */
-    ViewPager mViewPager;
+	/**
+	 * The {@link ViewPager} that will host the section contents.
+	 */
+	ViewPager viewPager;
 
-    @Override
-    public void onCreate(Bundle savedInstanceState) {
-        super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_sandbox);
-        // Create the adapter that will return a fragment for each of the three primary sections
-        // of the app.
-        mSectionsPagerAdapter = new SectionsPagerAdapter(getSupportFragmentManager());
+	/**
+	 * The Google+ API client.
+	 */
+	PlusClient plusClient;
 
+	/**
+	 * A {@link FragmentPagerAdapter} that returns a fragment corresponding to
+	 * one of the primary sections of the app.
+	 */
+	public class SectionsPagerAdapter extends FragmentPagerAdapter {
 
-        // Set up the ViewPager with the sections adapter.
-        mViewPager = (ViewPager) findViewById(R.id.pager);
-        mViewPager.setAdapter(mSectionsPagerAdapter);
+		private Fragment[] fragments = { new IntroFragment(),
+				new PlusFragment(), new MapsFragment() };
 
-    }
+		public SectionsPagerAdapter(FragmentManager fm) {
+			super(fm);
+		}
 
-    @Override
-    public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.activity_sandbox, menu);
-        return true;
-    }
+		@Override
+		public Fragment getItem(int i) {
+			return fragments[i];
+		}
 
-    
+		@Override
+		public int getCount() {
+			return fragments.length;
+		}
 
+		@Override
+		public CharSequence getPageTitle(int position) {
+			switch (position) {
+			case 0:
+				return "INTRO";
+			case 1:
+				return "PLUS";
+			case 2:
+				return "MAPS";
+			}
+			return null;
+		}
+	}
 
-    /**
-     * A {@link FragmentPagerAdapter} that returns a fragment corresponding to one of the primary
-     * sections of the app.
-     */
-    public class SectionsPagerAdapter extends FragmentPagerAdapter {
+	@Override
+	public void onCreate(Bundle savedInstanceState) {
+		super.onCreate(savedInstanceState);
+		setContentView(R.layout.activity_sandbox);
+		// Create the adapter that will return a fragment for each of the three
+		// primary sections of the app.
+		sectionsPagerAdapter = new SectionsPagerAdapter(
+				getSupportFragmentManager());
 
-        public SectionsPagerAdapter(FragmentManager fm) {
-            super(fm);
-        }
+		// Set up the ViewPager with the sections adapter.
+		viewPager = (ViewPager) findViewById(R.id.pager);
+		viewPager.setAdapter(sectionsPagerAdapter);
 
-        @Override
-        public Fragment getItem(int i) {
-            Fragment fragment = new DummySectionFragment();
-            Bundle args = new Bundle();
-            args.putInt(DummySectionFragment.ARG_SECTION_NUMBER, i + 1);
-            fragment.setArguments(args);
-            return fragment;
-        }
+		plusClient = new PlusClient(this, this, this, Scopes.PLUS_PROFILE);
 
-        @Override
-        public int getCount() {
-            return 3;
-        }
+	}
 
-        @Override
-        public CharSequence getPageTitle(int position) {
-            switch (position) {
-                case 0: return getString(R.string.title_section1).toUpperCase();
-                case 1: return getString(R.string.title_section2).toUpperCase();
-                case 2: return getString(R.string.title_section3).toUpperCase();
-            }
-            return null;
-        }
-    }
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+		getMenuInflater().inflate(R.menu.activity_sandbox, menu);
+		return true;
+	}
 
-    /**
-     * A dummy fragment representing a section of the app, but that simply displays dummy text.
-     */
-    public static class DummySectionFragment extends Fragment {
-        public DummySectionFragment() {
-        }
+	@Override
+	public void onConnectionFailed(ConnectionResult result) {
+		// TODO(marmat): Implement.
+		Log.d("SandboxActivity", "onConnectionFailed");
+		if (result.hasResolution()) {
+			try {
+				result.startResolutionForResult(this, 1);
+			} catch (SendIntentException e) {
+				plusClient.connect();
+			}
+		}
+	}
 
-        public static final String ARG_SECTION_NUMBER = "section_number";
+	@Override
+	protected void onActivityResult(int requestCode, int responseCode,
+			Intent intent) {
+		if (requestCode == 1 && responseCode == RESULT_OK) {
+			plusClient.connect();
+		}
+	}
 
-        @Override
-        public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                Bundle savedInstanceState) {
-            TextView textView = new TextView(getActivity());
-            textView.setGravity(Gravity.CENTER);
-            Bundle args = getArguments();
-            textView.setText(Integer.toString(args.getInt(ARG_SECTION_NUMBER)));
-            return textView;
-        }
-    }
+	@Override
+	public void onConnected() {
+		// TODO(marmat): Implement.
+		Log.d("SandboxActivity", "onConnected");
+	}
+
+	@Override
+	public void onDisconnected() {
+		// TODO(marmat): Implement.
+		Log.d("SandboxActivity", "onDisconnected");
+	}
+
+	@Override
+	public PlusClient getPlusClient() {
+		// This is used to allow Fragments access to the client. Is there a
+		// better way of doing this?
+		return plusClient;
+	}
 }
