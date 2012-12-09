@@ -23,6 +23,8 @@ import de.martinmatysiak.android.playservices.fragments.PlusFragment;
 public class SandboxActivity extends FragmentActivity implements
 		ConnectionCallbacks, OnConnectionFailedListener, PlusClientProvider {
 
+	private static final int PLUS_CLIENT_REQUEST = 1;
+
 	/**
 	 * The {@link android.support.v4.view.PagerAdapter} that will provide
 	 * fragments for each of the sections. We use a
@@ -105,11 +107,10 @@ public class SandboxActivity extends FragmentActivity implements
 
 	@Override
 	public void onConnectionFailed(ConnectionResult result) {
-		// TODO(marmat): Implement.
 		Log.d("SandboxActivity", "onConnectionFailed");
 		if (result.hasResolution()) {
 			try {
-				result.startResolutionForResult(this, 1);
+				result.startResolutionForResult(this, PLUS_CLIENT_REQUEST);
 			} catch (SendIntentException e) {
 				plusClient.connect();
 			}
@@ -119,20 +120,18 @@ public class SandboxActivity extends FragmentActivity implements
 	@Override
 	protected void onActivityResult(int requestCode, int responseCode,
 			Intent intent) {
-		if (requestCode == 1 && responseCode == RESULT_OK) {
+		if (requestCode == PLUS_CLIENT_REQUEST && responseCode == RESULT_OK) {
 			plusClient.connect();
 		}
 	}
 
 	@Override
 	public void onConnected() {
-		// TODO(marmat): Implement.
 		Log.d("SandboxActivity", "onConnected");
 	}
 
 	@Override
 	public void onDisconnected() {
-		// TODO(marmat): Implement.
 		Log.d("SandboxActivity", "onDisconnected");
 	}
 
